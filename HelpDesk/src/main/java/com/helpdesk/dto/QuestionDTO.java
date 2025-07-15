@@ -22,5 +22,6 @@ public class QuestionDTO {
     private double vote;
     private Long userID;
     private Long categoryID;
+    private String userName;
     private List<Long> answers;
 }

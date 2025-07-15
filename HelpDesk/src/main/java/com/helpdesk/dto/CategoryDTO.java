@@ -14,6 +14,6 @@ import java.util.List;
 public class CategoryDTO {
     private long categoryID;
     private String categoryName;
-    private List<Long> answers;
+    private List<Long> question;
 
 }

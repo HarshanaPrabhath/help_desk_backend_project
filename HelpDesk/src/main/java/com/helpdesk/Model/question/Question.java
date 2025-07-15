@@ -34,6 +34,8 @@ public class Question {
     private LocalDateTime createdDate;
     private boolean isAnonymous;
     private double vote;
+    private String userName;
+
 
 
     @PrePersist
