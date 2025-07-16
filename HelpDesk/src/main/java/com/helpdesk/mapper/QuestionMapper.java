@@ -1,42 +1,51 @@
 package com.helpdesk.mapper;
 
-import com.helpdesk.Model.answer.Answer;
-import com.helpdesk.Model.question.Question;
+
+import com.helpdesk.Model.Question;
 import com.helpdesk.dto.QuestionDTO;
+import org.mapstruct.InheritInverseConfiguration;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
-import java.util.stream.Collectors;
 
-public class QuestionMapper {
-    public static QuestionDTO toDTO(Question  question) {
-        if(question == null) return null;
 
-        return QuestionDTO.builder()
-                .questionID(question.getQuestionID())
-                .title(question.getTitle())
-                .description(question.getDescription())
-                .vote(question.getVote())
-                .createdDate(question.getCreatedDate())
-                .isAnonymous(question.isAnonymous())
-                .categoryID(question.getCategory()!=null
-                ? question.getCategory().getCategoryId():null)
-                .userID(question.getUser()!=null?question.getUser().getUserId():null)
-                .answers(question.getAnswers()!=null
-                ? question.getAnswers().stream().map(Answer::getAnswerId).collect(Collectors.toList())
-                : null)
-                .build();
+@Mapper(componentModel = "spring",uses = {AnswerMapper.class})
+public interface QuestionMapper {
+
+    @Mapping(source = "answers",target = "answers")
+    @Mapping(source = "user.userId",target = "userId")
+    @Mapping(source = ".", target = "userName", qualifiedByName = "mapUserName")
+    @Mapping(source = "category.categoryId",target = "categoryId")
+    QuestionDTO toDTO(Question question);
+
+    @InheritInverseConfiguration
+    @Mapping(target = "answers",ignore = true)
+    @Mapping(target = "user",ignore = true)
+    @Mapping(target = "category",ignore = true)
+    @Mapping(target = "createdDate",ignore = true)
+    @Mapping(source = "anonymous", target = "anonymous")
+    Question toEntity(QuestionDTO questionDTO);
+
+
+//    @Named("mapAnswersToIds")
+//    static List<Long> mapAnswersToIds(List<Answer>answers) {
+//        return answers != null ? answers
+//                .stream()
+//                .map(Answer::getAnswerId)
+//                .collect(Collectors.toList()) : null;
+//    }
+
+    @Named("mapUserName")
+    static String mapUserName(Question question) {
+        if (question.getAnonymous()) {
+            return "Anonymous";
+        } else if (question.getUser() != null) {
+            return question.getUser().getFirstName() + " " + question.getUser().getLastName();
+        } else {
+            return null;
+        }
     }
 
-    public static Question toEntity(QuestionDTO questionDTO) {
-        if(questionDTO == null) return null;
 
-        return Question.builder()
-                .questionID(questionDTO.getQuestionID())
-                .title(questionDTO.getTitle())
-                .isAnonymous(questionDTO.isAnonymous())
-                .vote(questionDTO.getVote())
-                .description(questionDTO.getDescription())
-                .createdDate(questionDTO.getCreatedDate())
-                .build();
-
-    }
 }

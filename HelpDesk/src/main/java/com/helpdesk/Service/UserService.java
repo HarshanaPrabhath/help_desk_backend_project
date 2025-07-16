@@ -1,131 +1,99 @@
 package com.helpdesk.Service;
 
-import com.helpdesk.Model.announcemnt.Announcement;
-import com.helpdesk.Model.answer.Answer;
-import com.helpdesk.Model.batch.Batch;
-import com.helpdesk.Model.department.Department;
-import com.helpdesk.Model.question.Question;
-import com.helpdesk.Model.user.User;
+
+
+import com.helpdesk.Model.Batch;
+import com.helpdesk.Model.Department;
+import com.helpdesk.Model.User;
 import com.helpdesk.Repository.BatchRepo;
 import com.helpdesk.Repository.DepartmentRepo;
 import com.helpdesk.Repository.UserRepo;
 import com.helpdesk.dto.UserDTO;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.helpdesk.mapper.UserMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
-    @Autowired
-    private UserRepo userRepo;
-    @Autowired
-    private DepartmentRepo departmentRepo;
-    @Autowired
-    private BatchRepo batchRepo;
-    @Autowired
-    private ModelMapper modelMapper;
-
+    private final UserRepo userRepo;
+    private final DepartmentRepo departmentRepo;
+    private final BatchRepo batchRepo;
+    private final UserMapper userMapper;
 
     public UserDTO createUser(UserDTO userDTO) {
-        User user = modelMapper.map(userDTO, User.class);
+        User user = userMapper.toEntity(userDTO);
 
-        if(userDTO.getBatchId() != null) {
+        if (userDTO.getBatchId() != null) {
             Batch batch = batchRepo.findById(userDTO.getBatchId())
-                    .orElseThrow(() -> new RuntimeException("Batch id not found"));
+                    .orElseThrow(() -> new RuntimeException("Batch ID not found"));
             user.setBatch(batch);
-
         }
 
-        if(userDTO.getDepartmentId() != null) {
+        if (userDTO.getDepartmentId() != null) {
             Department department = departmentRepo.findById(userDTO.getDepartmentId())
-                    .orElseThrow(() -> new RuntimeException("Department id not found"));
+                    .orElseThrow(() -> new RuntimeException("Department ID not found"));
             user.setDepartment(department);
         }
 
         User saved = userRepo.save(user);
-        return convertToDTO(saved);
-
+        return userMapper.toDTO(saved);
     }
 
     public List<UserDTO> findAllUsers() {
         return userRepo.findAll().stream()
-                .map(this::convertToDTO)
+                .map(userMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     public UserDTO findUserById(Long id) {
         User user = userRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return convertToDTO(user);
+        return userMapper.toDTO(user);
     }
 
     public List<UserDTO> findUserByFirstname(String name) {
-
-        List<UserDTO> list = userRepo.findByFirstNameContainingIgnoreCase(name)
+        return userRepo.findByFirstNameContainingIgnoreCase(name)
                 .stream()
-                .map(user -> modelMapper.map(user,UserDTO.class))
+                .map(userMapper::toDTO)
                 .collect(Collectors.toList());
-        return list;
     }
 
     public UserDTO updateUser(UserDTO userDTO) {
         User existingUser = userRepo.findById(userDTO.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Update fields
         existingUser.setFirstName(userDTO.getFirstName());
         existingUser.setLastName(userDTO.getLastName());
         existingUser.setEmail(userDTO.getEmail());
         existingUser.setPassword(userDTO.getPassword());
         existingUser.setGender(userDTO.getGender());
 
-        if(userDTO.getBatchId() != null) {
+        if (userDTO.getBatchId() != null) {
             Batch batch = batchRepo.findById(userDTO.getBatchId())
-                    .orElseThrow(() -> new RuntimeException("Batch id not found"));
+                    .orElseThrow(() -> new RuntimeException("Batch ID not found"));
             existingUser.setBatch(batch);
         }
 
-        if(userDTO.getDepartmentId() != null) {
+        if (userDTO.getDepartmentId() != null) {
             Department department = departmentRepo.findById(userDTO.getDepartmentId())
-                    .orElseThrow(() -> new RuntimeException("Department id not found"));
+                    .orElseThrow(() -> new RuntimeException("Department ID not found"));
             existingUser.setDepartment(department);
         }
-        User update = userRepo.save(existingUser);
-        return convertToDTO(update);
 
+        User updated = userRepo.save(existingUser);
+        return userMapper.toDTO(updated);
     }
 
     public void deleteUser(Long id) {
+        if (!userRepo.existsById(id)) {
+            throw new RuntimeException("User not found");
+        }
         userRepo.deleteById(id);
     }
-
-
-
-
-
-    private UserDTO convertToDTO(User user) {
-        UserDTO dto = modelMapper.map(user, UserDTO.class);
-
-        dto.setQuestionIds(user.getQuestions() != null
-                ? user.getQuestions().stream().map(Question::getQuestionID).collect(Collectors.toList())
-                : null);
-
-        dto.setAnswerIds(user.getAnswers() != null
-                ? user.getAnswers().stream().map(Answer::getAnswerId).collect(Collectors.toList())
-                : null);
-
-        dto.setAnnouncementIds(user.getAnnouncements() != null
-                ? user.getAnnouncements().stream().map(Announcement::getAnnouncementId).collect(Collectors.toList())
-                : null);
-
-        dto.setBatchId(user.getBatch() != null ? user.getBatch().getBatchId() : null);
-        dto.setDepartmentId(user.getDepartment() != null ? user.getDepartment().getDepartmentId() : null);
-
-        return dto;
-    }
-
-
 }

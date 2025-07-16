@@ -1,33 +1,32 @@
 package com.helpdesk.mapper;
 
-import com.helpdesk.Model.department.Department;
-import com.helpdesk.Model.user.User;
+
+import com.helpdesk.Model.Department;
 import com.helpdesk.dto.DepartmentDTO;
-
-import java.util.stream.Collectors;
-
-public class DepartmentMapper {
-    public static DepartmentDTO toDTO(Department department) {
-        if (department == null) {
-            return null;
-        }
-
-        return DepartmentDTO.builder()
-                .departmentId(department.getDepartmentId())
-                .departmentName(department.getDepartmentName())
-                .users(department.getUsers().stream().map(User::getUserId).collect(Collectors.toList()))
-                .build();
+import org.mapstruct.InheritInverseConfiguration;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 
-    }
 
-    public static Department toEntity(DepartmentDTO departmentDTO) {
-        if (departmentDTO == null) {
-            return null;
-        }
-        return Department.builder()
-                .departmentId(departmentDTO.getDepartmentId())
-                .departmentName(departmentDTO.getDepartmentName())
-                .build();
-    }
+
+@Mapper(componentModel = "spring" , uses = {UserMapper.class})
+public interface DepartmentMapper {
+
+    @Mapping(source = "users",target = "users")
+    DepartmentDTO toDTO(Department department);
+
+    @InheritInverseConfiguration
+    @Mapping(target = "users",ignore = true)
+    Department toEntity(DepartmentDTO departmentDTO);
+
+
+//    @Named("mapUsersIds")
+//    static List<Long> toDTOs(List<User> users) {
+//        return users != null
+//                ? users.stream()
+//                .map(User::getUserId)
+//                .collect(Collectors.toList()):null;
+//
+//    }
 }

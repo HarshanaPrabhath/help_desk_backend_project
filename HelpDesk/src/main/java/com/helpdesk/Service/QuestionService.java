@@ -1,83 +1,88 @@
 package com.helpdesk.Service;
 
-import com.helpdesk.Model.answer.Answer;
-import com.helpdesk.Model.category.Category;
-import com.helpdesk.Model.question.Question;
-import com.helpdesk.Model.user.User;
+import com.helpdesk.Model.Category;
+import com.helpdesk.Model.Question;
+import com.helpdesk.Model.User;
 import com.helpdesk.Repository.CategoryRepo;
 import com.helpdesk.Repository.QuestionRepo;
 import com.helpdesk.Repository.UserRepo;
 import com.helpdesk.dto.QuestionDTO;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.helpdesk.mapper.QuestionMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class QuestionService {
 
-    @Autowired
-    private QuestionRepo questionRepo;
-
-    @Autowired
-    private UserRepo userRepo;
-
-    @Autowired
-    private CategoryRepo categoryRepo;
-
-    @Autowired
-    private ModelMapper modelMapper;
+    private final QuestionRepo questionRepo;
+    private final UserRepo userRepo;
+    private final CategoryRepo categoryRepo;
+    private final QuestionMapper questionMapper;
 
     public QuestionDTO createQuestion(QuestionDTO dto) {
-        Question question = modelMapper.map(dto, Question.class);
+        Question question = questionMapper.toEntity(dto);
 
-        if (dto.getUserID() != null) {
-            User user = userRepo.findById(dto.getUserID())
+        if (dto.getUserId() != null) {
+            User user = userRepo.findById(dto.getUserId())
                     .orElseThrow(() -> new RuntimeException("User not found"));
             question.setUser(user);
         }
 
-        if (dto.getCategoryID() != null) {
-            Category category = categoryRepo.findById(dto.getCategoryID())
+        if (dto.getCategoryId() != null) {
+            Category category = categoryRepo.findById(dto.getCategoryId())
                     .orElseThrow(() -> new RuntimeException("Category not found"));
             question.setCategory(category);
         }
 
         Question saved = questionRepo.save(question);
-        return convertToDTO(saved);
+        return questionMapper.toDTO(saved);
     }
 
     public List<QuestionDTO> getAllQuestions() {
-        return questionRepo.findAll().stream()
-                .map(this::convertToDTO)
+        List<Question> questions = questionRepo.findAll();
+
+        // Defensive: ensure user and category are loaded if lazy (optional)
+        questions.forEach(q -> {
+            if (q.getUser() != null) {
+                q.getUser().getUserId();
+            }
+            if (q.getCategory() != null) {
+                q.getCategory().getCategoryId();
+            }
+        });
+
+        return questions.stream()
+                .map(questionMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     public QuestionDTO findById(Long id) {
         Question question = questionRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Question not found"));
-        return convertToDTO(question);
+        return questionMapper.toDTO(question);
     }
 
     public QuestionDTO updateQuestion(QuestionDTO dto) {
-        Question existing = questionRepo.findById(dto.getQuestionID())
+        Question existing = questionRepo.findById(dto.getQuestionId())
                 .orElseThrow(() -> new RuntimeException("Question not found"));
 
         existing.setTitle(dto.getTitle());
         existing.setDescription(dto.getDescription());
-        existing.setAnonymous(dto.isAnonymous());
+        existing.setAnonymous(dto.getAnonymous());
         existing.setVote(dto.getVote());
 
-        if (dto.getCategoryID() != null) {
-            Category category = categoryRepo.findById(dto.getCategoryID())
+        if (dto.getCategoryId() != null) {
+            Category category = categoryRepo.findById(dto.getCategoryId())
                     .orElseThrow(() -> new RuntimeException("Category not found"));
             existing.setCategory(category);
         }
 
         Question updated = questionRepo.save(existing);
-        return convertToDTO(updated);
+        return questionMapper.toDTO(updated);
     }
 
 
@@ -85,20 +90,5 @@ public class QuestionService {
         questionRepo.deleteById(id);
     }
 
-    private QuestionDTO convertToDTO(Question question) {
-        QuestionDTO dto = modelMapper.map(question, QuestionDTO.class);
 
-        dto.setUserID(question.getUser() != null ? question.getUser().getUserId() : null);
-        dto.setCategoryID(question.getCategory() != null ? question.getCategory().getCategoryId() : null);
-        dto.setAnswers(question.getAnswers() != null
-                ? question.getAnswers().stream().map(Answer::getAnswerId).collect(Collectors.toList())
-                : null);
-
-        dto.setUserName(question.isAnonymous() ? "Anonymous" :
-                question.getUser()!=null ? question.getUser().getFirstName()+" "+question.getUser().getLastName() : null);
-
-
-
-        return dto;
-    }
 }

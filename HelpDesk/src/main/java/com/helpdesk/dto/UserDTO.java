@@ -8,11 +8,9 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class UserDTO {
 
     private Long userId;
@@ -36,12 +34,13 @@ public class UserDTO {
     private LocalDateTime createdAt;
 
 
-    private List<Long> questionIds;
-    private List<Long> answerIds;
-    private List<Long> announcementIds;
+    private List<QuestionDTO> questions;
+    private List<AnswerDTO> answers;
+    private List<AnswerDTO> announcements;
 
 
     private Long batchId;
     private Long departmentId;
+
 
 }

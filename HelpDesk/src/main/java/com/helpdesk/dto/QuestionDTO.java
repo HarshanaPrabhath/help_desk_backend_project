@@ -1,10 +1,8 @@
 package com.helpdesk.dto;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,16 +10,24 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 public class QuestionDTO {
-    private Long questionID;
+    private Long questionId;
     private String title;
     private String description;
     private LocalDateTime createdDate;
-    private boolean isAnonymous;
+
+    private boolean anonymous;
     private double vote;
-    private Long userID;
-    private Long categoryID;
+    private Long userId;
+    private Long categoryId;
     private String userName;
-    private List<Long> answers;
+    private List<AnswerDTO> answers;
+
+
+    public boolean getAnonymous() {
+        return anonymous;
+
+    }
+
+
 }

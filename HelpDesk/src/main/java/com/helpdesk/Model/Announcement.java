@@ -1,25 +1,21 @@
-package com.helpdesk.Model.announcemnt;
+package com.helpdesk.Model;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-import com.helpdesk.Model.user.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
+
+@Data
 @JsonIdentityInfo(
         generator = ObjectIdGenerators.PropertyGenerator.class,
         property = "announcementId"
 )
 
-@Entity
-@Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
 @Table(name = "announcement")
 public class Announcement {
     @Id
@@ -39,4 +35,5 @@ public class Announcement {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+
 }

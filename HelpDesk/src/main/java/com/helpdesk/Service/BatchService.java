@@ -1,41 +1,40 @@
 package com.helpdesk.Service;
 
 
-import com.helpdesk.Model.batch.Batch;
-import com.helpdesk.Model.user.User;
+import com.helpdesk.Model.Batch;
 import com.helpdesk.Repository.BatchRepo;
 import com.helpdesk.dto.BatchDTO;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.helpdesk.mapper.BatchMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class BatchService {
-    @Autowired
-    private BatchRepo batchRepo;
-    @Autowired
-    private ModelMapper modelMapper;
+
+    private final BatchRepo batchRepo;
+    private final BatchMapper batchMapper;
 
     public BatchDTO findById(Long id) {
        Batch batch = batchRepo.findById(id).orElse(null);
-       return convertToDTO(batch);
+       return batchMapper.toDTO(batch);
 
     }
 
     public List<BatchDTO> findAllBatches() {
         return batchRepo.findAll().stream()
-                .map(this::convertToDTO)
+                .map(batchMapper::toDTO)
                 .collect(Collectors.toList());
 
     }
 
 
     public BatchDTO createBatch(BatchDTO batchDTO) {
-        Batch batch = modelMapper.map(batchDTO, Batch.class);
-        return convertToDTO(batchRepo.save(batch));
+        Batch batch = batchMapper.toEntity(batchDTO);
+        return batchMapper.toDTO(batchRepo.save(batch));
     }
 
     public BatchDTO updateBatch(BatchDTO batchDTO) {
@@ -44,7 +43,7 @@ public class BatchService {
 
         existing.setBatchName(batchDTO.getBatchName());
         Batch update = batchRepo.save(existing);
-        return convertToDTO(update);
+        return batchMapper.toDTO(update);
     }
 
     public void deleteBatch(Long id) {
@@ -53,14 +52,6 @@ public class BatchService {
 
 
 
-    private BatchDTO convertToDTO(Batch batch) {
-        BatchDTO batchDTO = modelMapper.map(batch, BatchDTO.class);
 
-        batchDTO.setUserIDs(batch.getUsers() != null
-                ? batch.getUsers().stream().map(User::getUserId).collect(Collectors.toList())
-                : null);
-
-        return batchDTO;
-    }
 
 }

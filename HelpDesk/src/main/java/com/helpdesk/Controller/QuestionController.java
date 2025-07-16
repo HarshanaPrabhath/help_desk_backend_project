@@ -39,7 +39,7 @@ public class QuestionController {
     @PutMapping("/{id}")
     public ResponseEntity<QuestionDTO> updateQuestion(@PathVariable Long id,
                                                       @Valid @RequestBody QuestionDTO questionDTO) {
-        questionDTO.setQuestionID(id);
+        questionDTO.setQuestionId(id);
         QuestionDTO updatedQuestion = questionService.updateQuestion(questionDTO);
         return ResponseEntity.ok(updatedQuestion);
     }

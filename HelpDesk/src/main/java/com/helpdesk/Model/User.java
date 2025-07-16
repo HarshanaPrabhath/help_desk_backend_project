@@ -1,15 +1,8 @@
-package com.helpdesk.Model.user;
+package com.helpdesk.Model;
 
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-import com.helpdesk.Model.announcemnt.Announcement;
-import com.helpdesk.Model.answer.Answer;
-import com.helpdesk.Model.batch.Batch;
-import com.helpdesk.Model.department.Department;
-import com.helpdesk.Model.question.Question;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,12 +13,10 @@ import java.util.List;
         generator = ObjectIdGenerators.PropertyGenerator.class,
         property = "userId"
 )
-
-@Entity
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Entity
 @Table(name = "user")
 public class User {
 
@@ -40,11 +31,6 @@ public class User {
 
     private LocalDateTime createdAt;
 
-
-    @PrePersist
-    public void prePersist() {
-       setCreatedAt(LocalDateTime.now());
-    }
 
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
@@ -65,6 +51,11 @@ public class User {
     @ManyToOne
     @JoinColumn(name = "dep_id")
     private Department department;
+
+    @PrePersist
+    public void prePersist() {
+        setCreatedAt(LocalDateTime.now());
+    }
 
 
 }

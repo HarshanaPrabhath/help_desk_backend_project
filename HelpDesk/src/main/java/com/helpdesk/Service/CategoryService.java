@@ -1,68 +1,53 @@
 package com.helpdesk.Service;
 
-import com.helpdesk.Model.category.Category;
-import com.helpdesk.Model.question.Question;
+import com.helpdesk.Model.Category;
 import com.helpdesk.Repository.CategoryRepo;
 import com.helpdesk.dto.CategoryDTO;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.helpdesk.mapper.CategoryMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CategoryService {
 
-    @Autowired
-    private CategoryRepo categoryRepo;
-
-    @Autowired
-    private ModelMapper modelMapper;
+    private final CategoryRepo categoryRepo;
+    private final CategoryMapper categoryMapper;
 
     public CategoryDTO createCategory(CategoryDTO dto) {
-        Category category = modelMapper.map(dto, Category.class);
+        Category category = categoryMapper.toEntity(dto);
         Category saved = categoryRepo.save(category);
-        return convertToDTO(saved);
+        return categoryMapper.toDTO(saved);
     }
 
     public List<CategoryDTO> findAllCategories() {
         return categoryRepo.findAll().stream()
-                .map(this::convertToDTO)
+                .map(categoryMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     public CategoryDTO findCategoryById(Long id) {
         Category category = categoryRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
-        return convertToDTO(category);
+        return categoryMapper.toDTO(category);
     }
 
     public CategoryDTO updateCategory(CategoryDTO dto) {
-        Category category = categoryRepo.findById(dto.getCategoryID())
+        Category category = categoryRepo.findById(dto.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
         category.setCategoryName(dto.getCategoryName());
         Category updated = categoryRepo.save(category);
 
-        return convertToDTO(updated);
+        return categoryMapper.toDTO(updated);
     }
 
     public void deleteCategory(Long id) {
         categoryRepo.deleteById(id);
     }
 
-    private CategoryDTO convertToDTO(Category category) {
-        CategoryDTO dto = modelMapper.map(category, CategoryDTO.class);
 
-        dto.setQuestion(
-                category.getQuestions() != null
-                        ? category.getQuestions().stream()
-                        .map(Question::getQuestionID)
-                        .collect(Collectors.toList())
-                        : null
-        );
-
-        return dto;
-    }
 }

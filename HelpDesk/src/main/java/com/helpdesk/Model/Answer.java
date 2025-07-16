@@ -1,27 +1,23 @@
-package com.helpdesk.Model.answer;
+package com.helpdesk.Model;
 
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-import com.helpdesk.Model.question.Question;
-import com.helpdesk.Model.user.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
 import java.time.LocalDateTime;
 
+
+
+@Data
 @JsonIdentityInfo(
         generator = ObjectIdGenerators.PropertyGenerator.class,
         property = "answerId"
 )
-
-@Entity
-@Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
 public class Answer {
 
     @Id
@@ -36,8 +32,6 @@ public class Answer {
         setCreatedDate(LocalDateTime.now());
     }
 
-
-
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
@@ -46,5 +40,6 @@ public class Answer {
     @ManyToOne
     @JoinColumn(name = "question_id")
     private Question question;
+
 
 }

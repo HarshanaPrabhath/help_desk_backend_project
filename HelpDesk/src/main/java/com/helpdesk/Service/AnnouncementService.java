@@ -1,29 +1,29 @@
 package com.helpdesk.Service;
 
-import com.helpdesk.Model.announcemnt.Announcement;
-import com.helpdesk.Model.user.User;
+import com.helpdesk.Model.Announcement;
+import com.helpdesk.Model.User;
 import com.helpdesk.Repository.AnnouncementRepo;
 import com.helpdesk.Repository.UserRepo;
 import com.helpdesk.dto.AnnouncementDTO;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.helpdesk.mapper.AnnounceMapper;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class AnnouncementService {
-    @Autowired
-    private AnnouncementRepo announcementRepo;
-    @Autowired
-    private UserRepo userRepo;
-    @Autowired
-    private ModelMapper modelMapper;
+
+    private final AnnouncementRepo announcementRepo;
+    private final UserRepo userRepo;
+    private final AnnounceMapper announceMapper;
 
 
     public AnnouncementDTO createAnnouncements(AnnouncementDTO announcementDTO) {
-        Announcement announcement = modelMapper.map(announcementDTO, Announcement.class);
+        Announcement announcement = announceMapper.toEntity(announcementDTO);
 
         if(announcementDTO.getUserId() != null) {
             User user = userRepo.findById(announcementDTO.getUserId())
@@ -33,28 +33,28 @@ public class AnnouncementService {
         }
 
        Announcement save = announcementRepo.save(announcement);
-        return convertToDTO(save);
+        return announceMapper.toDTO(save);
 
     }
 
     public List<AnnouncementDTO> findAllAnnouncements() {
         List<Announcement> announcements = announcementRepo.findAll();
         return announcements.stream()
-                .map(this::convertToDTO)
+                .map(announceMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     public List<AnnouncementDTO> findByTitle(String title) {
         List<Announcement> announcements = announcementRepo.findByTitleContainingIgnoreCase(title);
         return announcements.stream()
-                .map(this::convertToDTO)
+                .map(announceMapper::toDTO)
                 .collect(Collectors.toList());
 
     }
 
     public AnnouncementDTO findById(Long id) {
         Announcement announcement = announcementRepo.findById(id).orElse(null);
-        return convertToDTO(announcement);
+        return announceMapper.toDTO(announcement);
     }
 
     public AnnouncementDTO update(AnnouncementDTO announcementDTO) {
@@ -63,7 +63,7 @@ public class AnnouncementService {
         announcement.setTitle(announcementDTO.getTitle());
         announcement.setDescription(announcementDTO.getDescription());
         announcementRepo.save(announcement);
-        return convertToDTO(announcement);
+        return announceMapper.toDTO(announcement);
 
     }
     public void delete(Long id) {
@@ -71,14 +71,5 @@ public class AnnouncementService {
 
     }
 
-    private AnnouncementDTO convertToDTO(Announcement announcement) {
-        AnnouncementDTO DTO = modelMapper.map(announcement, AnnouncementDTO.class);
 
-        DTO.setUserId(announcement.getUser()!=null
-        ? announcement.getUser().getUserId():null);
-
-        return DTO;
-
-
-    }
 }

@@ -1,34 +1,22 @@
 package com.helpdesk.mapper;
 
-import com.helpdesk.Model.answer.Answer;
+
+import com.helpdesk.Model.Answer;
 import com.helpdesk.dto.AnswerDTO;
+import org.mapstruct.InheritInverseConfiguration;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-public class AnswerMapper {
-    public static AnswerDTO toDTO(Answer answer) {
-        if (answer == null) {
-            return null;
-        }
-        return AnswerDTO.builder()
-                .answerID(answer.getAnswerId())
-                .description(answer.getDescription())
-                .createdAt(answer.getCreatedDate())
-                .vote(answer.getVote())
-                .questionID(answer.getQuestion()!=null
-                ? answer.getQuestion().getQuestionID() : null)
-                .build();
+@Mapper(componentModel = "spring")
+public interface AnswerMapper {
 
-    }
+    @Mapping(source = "question.questionId",target = "questionId")
+    @Mapping(source = "user.userId",target = "userId")
+    AnswerDTO toDTO(Answer answer);
 
-    public static Answer toEntity(AnswerDTO answerDTO) {
-        if (answerDTO == null) {
-            return null;
-        }
-        return Answer.builder()
-                .answerId(answerDTO.getAnswerID())
-                .description(answerDTO.getDescription())
-                .createdDate(answerDTO.getCreatedAt())
-                .vote(answerDTO.getVote())
-                .build();
 
-    }
+    @InheritInverseConfiguration
+    @Mapping(target = "question", ignore = true)
+    @Mapping(target = "createdDate",ignore = true)
+    Answer toEntity(AnswerDTO answerDTO);
 }

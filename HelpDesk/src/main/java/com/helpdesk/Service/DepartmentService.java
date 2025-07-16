@@ -1,41 +1,38 @@
 package com.helpdesk.Service;
 
-import com.helpdesk.Model.department.Department;
-import com.helpdesk.Model.user.User;
+import com.helpdesk.Model.Department;
 import com.helpdesk.Repository.DepartmentRepo;
 import com.helpdesk.dto.DepartmentDTO;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.helpdesk.mapper.DepartmentMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class DepartmentService {
 
-    @Autowired
-    private DepartmentRepo departmentRepo;
-
-    @Autowired
-    private ModelMapper modelMapper;
+    private final DepartmentRepo departmentRepo;
+    private final DepartmentMapper departmentMapper;
 
     public DepartmentDTO createDepartment(DepartmentDTO dto) {
-        Department department = modelMapper.map(dto, Department.class);
+        Department department = departmentMapper.toEntity(dto);
         Department saved = departmentRepo.save(department);
-        return convertToDTO(saved);
+        return departmentMapper.toDTO(saved);
     }
 
     public List<DepartmentDTO> getAllDepartments() {
         return departmentRepo.findAll().stream()
-                .map(this::convertToDTO)
+                .map(departmentMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     public DepartmentDTO getDepartmentById(Long id) {
         Department dept = departmentRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Department not found"));
-        return convertToDTO(dept);
+        return departmentMapper.toDTO(dept);
     }
 
     public DepartmentDTO updateDepartment(DepartmentDTO dto) {
@@ -45,18 +42,15 @@ public class DepartmentService {
         existing.setDepartmentName(dto.getDepartmentName());
 
         Department updated = departmentRepo.save(existing);
-        return convertToDTO(updated);
+        return departmentMapper.toDTO(updated);
     }
 
     public void deleteDepartment(Long id) {
+        if (!departmentRepo.existsById(id)) {
+            throw new RuntimeException("Department not found");
+        }
         departmentRepo.deleteById(id);
     }
 
-    private DepartmentDTO convertToDTO(Department department) {
-        DepartmentDTO dto = modelMapper.map(department, DepartmentDTO.class);
-        dto.setUsers(department.getUsers() != null
-                ? department.getUsers().stream().map(User::getUserId).collect(Collectors.toList())
-                : null);
-        return dto;
-    }
+
 }

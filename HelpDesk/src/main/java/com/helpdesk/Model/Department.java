@@ -1,35 +1,27 @@
-package com.helpdesk.Model.batch;
-
+package com.helpdesk.Model;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-import com.helpdesk.Model.user.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
+@Data
 @JsonIdentityInfo(
         generator = ObjectIdGenerators.PropertyGenerator.class,
-        property = "batchId"
+        property = "departmentId"
 )
-
-@Entity
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class Batch {
-
+@Entity
+public class Department {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long batchId;
-    private String batchName;
+    private Long departmentId;
+    private String departmentName;
 
-
-    @OneToMany(mappedBy = "batch", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy ="department", fetch = FetchType.LAZY)
     private List<User> users;
+
 }

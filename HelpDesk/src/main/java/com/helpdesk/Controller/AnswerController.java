@@ -23,7 +23,7 @@ public class AnswerController {
 
     @PutMapping("/{id}")
     public ResponseEntity<AnswerDTO> updateAnswer(@PathVariable Long id, @RequestBody AnswerDTO dto) {
-        dto.setAnswerID(id);
+        dto.setAnswerId(id);
         AnswerDTO updated = answerService.updateAnswer(dto);
         return ResponseEntity.ok(updated);
     }

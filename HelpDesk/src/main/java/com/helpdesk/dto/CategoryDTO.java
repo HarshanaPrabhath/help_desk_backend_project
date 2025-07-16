@@ -1,19 +1,15 @@
 package com.helpdesk.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 public class CategoryDTO {
-    private long categoryID;
+    private long categoryId;
     private String categoryName;
-    private List<Long> question;
+    private List<QuestionDTO> questions;
 
 }
