@@ -1,0 +1,156 @@
+package com.helpdesk.Security.auth;
+
+import com.helpdesk.Model.AppRole;
+import com.helpdesk.Model.Role;
+import com.helpdesk.Model.User;
+import com.helpdesk.Repository.DepartmentRepo;
+import com.helpdesk.Repository.RoleRepo;
+import com.helpdesk.Repository.UserRepo;
+import com.helpdesk.Security.config.JwtUtil;
+import com.helpdesk.Security.request.LoginRequest;
+import com.helpdesk.Security.request.RegisterRequest;
+import com.helpdesk.Security.response.RegisterResponse;
+import com.helpdesk.Security.response.UserInfoResponse;
+import com.helpdesk.Security.services.UserDetailsImpl;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class AuthenticationService {
+
+    private final UserRepo userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final RoleRepo roleRepository;
+    private final DepartmentRepo departmentRepo;
+
+    public RegisterResponse register(RegisterRequest request) {
+        // Encode the password before saving it
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+
+        // Initialize a set of roles
+        Set<String> strRoles = request.getRole(); // Can be null or have roles like ["admin"]
+        Set<Role> roles = new HashSet<>();
+
+        if (strRoles == null || strRoles.isEmpty()) {
+            // Default role (ROLE_USER) when no role is provided
+            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
+                    .orElseThrow(() -> new RuntimeException("Error: Role is not found"));
+            roles.add(userRole);
+        } else {
+            // Loop through the provided roles (e.g. ["admin", "seller"])
+            strRoles.forEach(role -> {
+                switch (role) {
+                    case "admin":
+                        Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
+                                .orElseThrow(() -> new RuntimeException("Error: Role is not found"));
+                        roles.add(adminRole);
+                        break;
+                    default:
+                        // If role doesn't match known ones, default to user role
+                        Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
+                                .orElseThrow(() -> new RuntimeException("Error: Role is not found"));
+                        roles.add(userRole);
+                        break;
+                }
+            });
+        }
+
+        // Create the user with the roles
+        User user = new User();
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setEmail(request.getEmail());
+        user.setPassword(encodedPassword);
+        user.setGender(request.getGender());
+        user.setBatchNo(request.getBatchNo());
+        user.setRoles(roles);
+
+        if(request.getDepartmentId() == 1){
+            user.setDepartment(departmentRepo.findById(1L).orElseThrow(() -> new RuntimeException("Department Not Found!!!")));
+        } else if (request.getDepartmentId() == 2) {
+            user.setDepartment(departmentRepo.findById(2L).orElseThrow(() -> new RuntimeException("Department Not Found!!!")));
+        } else if (request.getDepartmentId()==3) {
+            user.setDepartment(departmentRepo.findById(3L).orElseThrow(() -> new RuntimeException("Department Not Found!!!")));
+        }else {
+            throw new RuntimeException("Add Correct Department Id 1 : ICT , 2 : ET , 3 : BST");
+        }
+
+
+        // Save the user to the database
+        User savedUser = userRepository.save(user);
+
+        // Generate JWT Token
+        ResponseCookie jwtCookie = jwtService.generateJwtCookie(UserDetailsImpl.build(user));
+        // Return response with JWT token
+
+        UserInfoResponse userInfoResponse = UserInfoResponse
+                .builder()
+                .userId(Math.toIntExact(savedUser.getUserId()))
+                .firstName(savedUser.getFirstName())
+                .lastName(savedUser.getLastName())
+                .batchNo(savedUser.getBatchNo())
+                .email(savedUser.getEmail())
+                .department(savedUser.getDepartment().getDepartmentName())
+                .roles(savedUser.getRoles()
+                        .stream()
+                        .map(role -> role.getRoleName().name()) // assuming getRoleName() returns AppRole enum
+                        .collect(Collectors.toList()))
+                .build();
+
+
+        return new RegisterResponse(userInfoResponse, jwtCookie);
+    }
+    public ResponseEntity<UserInfoResponse> authenticate(LoginRequest request) {
+
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                request.getEmail(),
+                request.getPassword()
+
+        ));
+
+        var user = userRepository.findByEmail(request.getEmail()).orElseThrow();
+        ResponseCookie jwtCookie = jwtService.generateJwtCookie(UserDetailsImpl.build(user));
+
+        UserInfoResponse  userInfoResponse =  new UserInfoResponse();
+//       userInfoResponse.setJwtToken(jwtCookie.toString());
+        userInfoResponse.setUserId(Math.toIntExact(user.getUserId()));
+        userInfoResponse.setEmail(user.getEmail());
+        userInfoResponse.setFirstName(user.getFirstName());
+        userInfoResponse.setLastName(user.getLastName());
+        userInfoResponse.setBatchNo(user.getBatchNo());
+        userInfoResponse.setDepartment(user.getDepartment().getDepartmentName());
+        userInfoResponse.setRoles(
+                user.getRoles().stream()
+                        .map(role -> role.getRoleName().name()) // assuming getRoleName() returns AppRole enum
+                        .collect(Collectors.toList())
+        );
+
+        return ResponseEntity
+                .ok()
+                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                .body(userInfoResponse);
+    }
+
+    public ResponseEntity<String> signOut() {
+        ResponseCookie cookie = jwtService.getClearJwtCoockie();
+
+        return ResponseEntity
+                .ok()
+                .header(HttpHeaders.SET_COOKIE,cookie.toString())
+                .body("User Signout Successfully");
+    }
+
+}
