@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -184,14 +185,24 @@ public class AuthenticationService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(()-> new RuntimeException("User Not Registered"));
 
-        EmailCode emailCode = new EmailCode();
-        emailCode.setEmail(user.getEmail());
-        emailCode.setCreatedAt(LocalDateTime.now());
-        emailCode.setExpiresAt(emailCode.getCreatedAt().plusMinutes(10));
-        emailCode.setCode(code);
-        emailCode.setStatus(true);
+        Optional<EmailCode> dbEmailCode = emailCodeRepo.findByEmail(email);
 
-        emailCodeRepo.save(emailCode);
+        if(dbEmailCode.isEmpty()){
+            EmailCode emailCode = new EmailCode();
+            emailCode.setEmail(user.getEmail());
+            emailCode.setCreatedAt(LocalDateTime.now());
+            emailCode.setExpiresAt(emailCode.getCreatedAt().plusMinutes(10));
+            emailCode.setCode(code);
+            emailCodeRepo.save(emailCode);
+        }else{
+            EmailCode existingEmailCode = dbEmailCode.get();
+            existingEmailCode.setCode(code);
+            existingEmailCode.setCreatedAt(LocalDateTime.now());
+            existingEmailCode.setExpiresAt(existingEmailCode.getCreatedAt().plusMinutes(10));
+
+            emailCodeRepo.save(existingEmailCode);
+        }
+
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(user.getEmail());
@@ -208,7 +219,7 @@ public class AuthenticationService {
         User user = userRepository.findByEmail(passwordResetRequest.getEmail())
                 .orElseThrow(()-> new RuntimeException("User Not Registered"));
 
-        EmailCode emailCode = emailCodeRepo.findByEmailAndStatus(passwordResetRequest.getEmail())
+        EmailCode emailCode = emailCodeRepo.findByEmail(passwordResetRequest.getEmail())
                 .orElseThrow(()-> new RuntimeException("User has not requested a code"));
 
         boolean equalityOfCode = Objects.equals(emailCode.getCode(), passwordResetRequest.getCode());
@@ -217,17 +228,12 @@ public class AuthenticationService {
             return "please provide valid reset code";
         }
         if(timeExpiryCheck){
-            emailCode.setStatus(false);
-            emailCodeRepo.save(emailCode);
             return  "your code is expired";
         }
 
         String encodedPass = passwordEncoder.encode(passwordResetRequest.getPassword());
         user.setPassword(encodedPass);
         userRepository.save(user);
-        
-        emailCode.setStatus(false);
-        emailCodeRepo.save(emailCode);
 
         return "password reset successfully";
     }

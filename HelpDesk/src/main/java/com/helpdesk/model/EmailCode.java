@@ -28,13 +28,8 @@ public class EmailCode {
     @Column(nullable = false)
     private Integer code;
 
-
-    @Column(updatable = false)
     private LocalDateTime createdAt;
-
     private LocalDateTime expiresAt;
-
-    private boolean status;
 
 
 }
