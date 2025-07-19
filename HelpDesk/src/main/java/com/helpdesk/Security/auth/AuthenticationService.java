@@ -1,13 +1,16 @@
 package com.helpdesk.Security.auth;
 
 import com.helpdesk.Model.AppRole;
+import com.helpdesk.Model.EmailCode;
 import com.helpdesk.Model.Role;
 import com.helpdesk.Model.User;
 import com.helpdesk.Repository.DepartmentRepo;
+import com.helpdesk.Repository.EmailCodeRepo;
 import com.helpdesk.Repository.RoleRepo;
 import com.helpdesk.Repository.UserRepo;
 import com.helpdesk.Security.config.JwtUtil;
 import com.helpdesk.Security.request.LoginRequest;
+import com.helpdesk.Security.request.PasswordResetRequest;
 import com.helpdesk.Security.request.RegisterRequest;
 import com.helpdesk.Security.response.RegisterResponse;
 import com.helpdesk.Security.response.UserInfoResponse;
@@ -16,12 +19,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -35,6 +42,8 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final RoleRepo roleRepository;
     private final DepartmentRepo departmentRepo;
+    private final JavaMailSender mailSender;
+    private final EmailCodeRepo emailCodeRepo;
 
     public RegisterResponse register(RegisterRequest request) {
         // Encode the password before saving it
@@ -153,4 +162,73 @@ public class AuthenticationService {
                 .body("User Signout Successfully");
     }
 
+    public String getResetCode(String email) {
+
+        int code = (int)(Math.random() * 90000) + 10000;
+
+        String textMessage = String.format("Hi there,\n" +
+                "\n" +
+                "We're from HelpDesk! You recently requested to reset your password.\n" +
+                "\n" +
+                "Please use the following verification code to proceed:\n" +
+                "\n" +
+                "\uD83D\uDC49 Your verification code: %d\n" +
+                "\n" +
+                "Enter this code in the application to verify your identity.\n" +
+                "\n" +
+                "If you did not request this, you can safely ignore this email.\n" +
+                "\n" +
+                "Best regards,  \n" +
+                "The HelpDesk Team",code);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(()-> new RuntimeException("User Not Registered"));
+
+        EmailCode emailCode = new EmailCode();
+        emailCode.setEmail(user.getEmail());
+        emailCode.setCreatedAt(LocalDateTime.now());
+        emailCode.setExpiresAt(emailCode.getCreatedAt().plusMinutes(10));
+        emailCode.setCode(code);
+        emailCode.setStatus(true);
+
+        emailCodeRepo.save(emailCode);
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(user.getEmail());
+        message.setSubject("HelpDesk Verification Code");
+        message.setText(textMessage);
+        mailSender.send(message);
+
+
+        return "your verification code sent to the email";
+    }
+
+    public String resetPassword(PasswordResetRequest passwordResetRequest){
+
+        User user = userRepository.findByEmail(passwordResetRequest.getEmail())
+                .orElseThrow(()-> new RuntimeException("User Not Registered"));
+
+        EmailCode emailCode = emailCodeRepo.findByEmailAndStatus(passwordResetRequest.getEmail())
+                .orElseThrow(()-> new RuntimeException("User has not requested a code"));
+
+        boolean equalityOfCode = Objects.equals(emailCode.getCode(), passwordResetRequest.getCode());
+        boolean timeExpiryCheck =  LocalDateTime.now().isAfter(emailCode.getExpiresAt());
+        if(!equalityOfCode){
+            return "please provide valid reset code";
+        }
+        if(timeExpiryCheck){
+            emailCode.setStatus(false);
+            emailCodeRepo.save(emailCode);
+            return  "your code is expired";
+        }
+
+        String encodedPass = passwordEncoder.encode(passwordResetRequest.getPassword());
+        user.setPassword(encodedPass);
+        userRepository.save(user);
+        
+        emailCode.setStatus(false);
+        emailCodeRepo.save(emailCode);
+
+        return "password reset successfully";
+    }
 }

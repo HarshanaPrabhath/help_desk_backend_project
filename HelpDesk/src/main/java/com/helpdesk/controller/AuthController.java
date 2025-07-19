@@ -2,14 +2,18 @@ package com.helpdesk.Controller;
 
 import com.helpdesk.Repository.UserRepo;
 import com.helpdesk.Security.auth.AuthenticationService;
+import com.helpdesk.Security.request.EmailRequest;
 import com.helpdesk.Security.request.LoginRequest;
+import com.helpdesk.Security.request.PasswordResetRequest;
 import com.helpdesk.Security.request.RegisterRequest;
 import com.helpdesk.Security.response.MassageResponse;
 import com.helpdesk.Security.response.RegisterResponse;
 import com.helpdesk.Security.response.UserInfoResponse;
 import com.helpdesk.Security.services.UserDetailsImpl;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -45,6 +49,22 @@ public class AuthController {
     @PostMapping("/signin")
     public ResponseEntity<UserInfoResponse>  authenticate(@RequestBody LoginRequest request){
         return authenticationService.authenticate(request);
+    }
+
+    @PostMapping("/resetcode")
+    public ResponseEntity<String> sendPasswordResetCode(@RequestBody EmailRequest request){
+
+        String response = authenticationService.getResetCode(request.getEmail());
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PostMapping("/resetpassword")
+    public ResponseEntity<String> resetPassword(@RequestBody PasswordResetRequest passwordResetRequest){
+
+        String response = authenticationService.resetPassword(passwordResetRequest);
+
+        return new ResponseEntity<>(response,HttpStatus.OK);
     }
 
     @GetMapping("/userinfo")

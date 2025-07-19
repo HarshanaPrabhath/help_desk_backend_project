@@ -22,7 +22,7 @@ public class AnswerService {
     private final AnswerRepo answerRepo;
     private final QuestionRepo questionRepo;
     private final UserRepo userRepo;
-    private AnswerMapper answerMapper;
+    private final AnswerMapper answerMapper;
 
 
 
